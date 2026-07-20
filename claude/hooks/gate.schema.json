@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/claude-action.schema.json",
   "title": "Claude Code test-gate action config",
-  "description": "各プロジェクトの .claude/action.yaml のスキーマ。変更ファイルのパスに glob マッチするルールごとに、実行ディレクトリとコマンド列を定義する。",
+  "description": "各プロジェクトの .claude/gate.yaml のスキーマ。変更ファイルのパスに glob マッチするルールごとに、実行ディレクトリとコマンド列を定義する。",
   "type": "object",
   "additionalProperties": false,
   "required": [
