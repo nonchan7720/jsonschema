@@ -15,9 +15,39 @@
       "items": {
         "$ref": "#/definitions/rule"
       }
+    },
+    "always": {
+      "description": "rules のいずれか1つでもマッチした場合にのみ、追加で実行される PJ 全体の整合性チェック（match は無い。ビルド全体・全体テストなど、差分に閉じない検証を書く）。何もマッチしなければ実行されない。",
+      "$ref": "#/definitions/alwaysBlock"
     }
   },
   "definitions": {
+    "alwaysBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run"
+      ],
+      "properties": {
+        "dir": {
+          "type": "string",
+          "description": "run のコマンドを実行する作業ディレクトリ（プロジェクトルートからの相対パス）。省略時はプロジェクトルートで実行される。",
+          "minLength": 1,
+          "not": {
+            "pattern": "(^/|\\.\\.(/|$))"
+          }
+        },
+        "run": {
+          "type": "array",
+          "description": "rules が1件でもマッチしたときに順番に実行するシェルコマンド列。1つでも非0で終了すれば失敗とみなされる。",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
     "rule": {
       "type": "object",
       "additionalProperties": false,
