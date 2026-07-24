@@ -16,19 +16,28 @@
         "$ref": "#/definitions/rule"
       }
     },
-    "always": {
-      "description": "rules のいずれか1つでもマッチした場合にのみ、追加で実行される PJ 全体の整合性チェック（match は無い。ビルド全体・全体テストなど、差分に閉じない検証を書く）。何もマッチしなければ実行されない。",
-      "$ref": "#/definitions/alwaysBlock"
+    "consistency_checks": {
+      "type": "array",
+      "description": "名前付きの整合性チェック定義集。match は持たない（match するのは rules 側）。各 rule が run_checks で名前を参照したときだけ実行される、PJ全体のビルド・テストなどを書く。複数 pkg のルールから同じ定義を参照でき、重複を避けられる。",
+      "items": {
+        "$ref": "#/definitions/consistencyCheck"
+      }
     }
   },
   "definitions": {
-    "alwaysBlock": {
+    "consistencyCheck": {
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "name",
         "run"
       ],
       "properties": {
+        "name": {
+          "type": "string",
+          "description": "rules[].run_checks から参照するための識別名。consistency_checks 内で一意にすること。",
+          "minLength": 1
+        },
         "dir": {
           "type": "string",
           "description": "run のコマンドを実行する作業ディレクトリ（プロジェクトルートからの相対パス）。省略時はプロジェクトルートで実行される。",
@@ -39,7 +48,7 @@
         },
         "run": {
           "type": "array",
-          "description": "rules が1件でもマッチしたときに順番に実行するシェルコマンド列。1つでも非0で終了すれば失敗とみなされる。",
+          "description": "このチェックが参照されたときに順番に実行するシェルコマンド列。1つでも非0で終了すれば失敗とみなされる。",
           "minItems": 1,
           "items": {
             "type": "string",
@@ -82,6 +91,15 @@
         "run": {
           "type": "array",
           "description": "マッチしたときに順番に実行するシェルコマンド列。1つでも非0で終了すれば、このルールは失敗とみなされる。",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "run_checks": {
+          "type": "array",
+          "description": "このルールがマッチしたときに追加で実行する consistency_checks の名前一覧。複数ルールから同じ名前を参照しても、同一セッション内では1回だけ実行される。",
           "minItems": 1,
           "items": {
             "type": "string",
