@@ -51,9 +51,11 @@
           "description": "このチェックが参照されたときに順番に実行するシェルコマンド列。1つでも非0で終了すれば失敗とみなされる。",
           "minItems": 1,
           "items": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/definitions/runItem"
           }
+        },
+        "timeout": {
+          "$ref": "#/definitions/timeoutSeconds"
         }
       }
     },
@@ -93,8 +95,7 @@
           "description": "マッチしたときに順番に実行するシェルコマンド列。1つでも非0で終了すれば、このルールは失敗とみなされる。",
           "minItems": 1,
           "items": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/definitions/runItem"
           }
         },
         "run_checks": {
@@ -105,12 +106,74 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "timeout": {
+          "$ref": "#/definitions/timeoutSeconds"
         }
       }
     },
     "globPattern": {
       "type": "string",
       "minLength": 1
+    },
+    "runItem": {
+      "description": "run の要素。単一コマンド（文字列 or {cmd, timeout}）、または {parallel: [...]} の並行実行ブロック。",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/command"
+        },
+        {
+          "$ref": "#/definitions/parallelGroup"
+        }
+      ]
+    },
+    "parallelGroup": {
+      "type": "object",
+      "description": "中のコマンドを並行実行するブロック。全コマンドの完了を待ってから run の次の要素へ進む。1つでも失敗すればルールの失敗となる。parallel の中に parallel はネストできない。",
+      "additionalProperties": false,
+      "required": [
+        "parallel"
+      ],
+      "properties": {
+        "parallel": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/command"
+          }
+        }
+      }
+    },
+    "command": {
+      "description": "実行するシェルコマンド。文字列、またはコマンドごとに timeout を指定できるオブジェクト形式。",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "cmd"
+          ],
+          "properties": {
+            "cmd": {
+              "type": "string",
+              "description": "実行するシェルコマンド。",
+              "minLength": 1
+            },
+            "timeout": {
+              "$ref": "#/definitions/timeoutSeconds"
+            }
+          }
+        }
+      ]
+    },
+    "timeoutSeconds": {
+      "type": "integer",
+      "description": "コマンドに適用するタイムアウト秒数。コマンド個別の timeout > rule / consistency_check の timeout > デフォルト 300 秒の優先順で解決される。超過するとプロセスグループごと強制終了され、失敗として扱われる。",
+      "minimum": 1
     }
   }
 }
