@@ -145,7 +145,7 @@
       }
     },
     "command": {
-      "description": "実行するシェルコマンド。文字列、またはコマンドごとに timeout を指定できるオブジェクト形式。",
+      "description": "実行するシェルコマンド。文字列、またはコマンドごとに name / timeout を指定できるオブジェクト形式。",
       "oneOf": [
         {
           "type": "string",
@@ -161,6 +161,11 @@
             "cmd": {
               "type": "string",
               "description": "実行するシェルコマンド。",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "description": "このコマンドの識別名。ログファイル名に cmd の代わりに使われる（logs/{session_id}/{name}.{pid}.log）。省略時は cmd から生成される。",
               "minLength": 1
             },
             "timeout": {
