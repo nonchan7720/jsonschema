@@ -104,7 +104,7 @@
         },
         "run_checks": {
           "type": "array",
-          "description": "このルールがマッチしたときに追加で実行する consistency_checks の名前一覧。複数ルールから同じ名前を参照しても、同一セッション内では1回だけ実行される。",
+          "description": "このルールがマッチしたときに追加で実行する consistency_checks の名前一覧。複数ルールから同じ名前を参照しても、1回のチェック実行につき1回だけ実行される（リトライや最終検証パスでは改めて実行される）。",
           "minItems": 1,
           "items": {
             "type": "string",
