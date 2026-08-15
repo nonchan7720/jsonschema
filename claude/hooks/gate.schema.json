@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/claude-action.schema.json",
   "title": "Claude Code test-gate action config",
-  "description": "各プロジェクトの .claude/gate.yaml のスキーマ。変更ファイルのパスに glob マッチするルールごとに、実行ディレクトリとコマンド列を定義する。",
+  "description": "各プロジェクトの .claude/gate.yaml のスキーマ。二相構造: rules は PostToolUse で動き、変更ファイルの glob にマッチしたパッケージ単位の lint/test を実行する（ブロックしない）。consistency_checks は Stop/SubagentStop で動き、rules フェーズで実際にマッチした rule が run_checks で名前を参照したものだけを実行する、パッケージを跨いだ整合性検証（失敗すると停止をブロックする）。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,14 +11,14 @@
   "properties": {
     "rules": {
       "type": "array",
-      "description": "上から順に評価され、マッチした全ルールが実行される（早期終了しない）。",
+      "description": "rules フェーズ（PostToolUse）で評価される。上から順に評価され、マッチした全ルールが実行される（早期終了しない）。失敗しても停止はブロックしない。",
       "items": {
         "$ref": "#/definitions/rule"
       }
     },
     "consistency_checks": {
       "type": "array",
-      "description": "名前付きの整合性チェック定義集。match は持たない（match するのは rules 側）。各 rule が run_checks で名前を参照したときだけ実行される、PJ全体のビルド・テストなどを書く。複数 pkg のルールから同じ定義を参照でき、重複を避けられる。",
+      "description": "checks フェーズ（Stop/SubagentStop）で評価される、名前付きの整合性チェック定義集。match は持たない（match するのは rules 側）。無条件には実行されず、rules フェーズで実際にマッチした rule が run_checks で名前を参照したものだけが予約され、checks フェーズで実行される。PJ全体のビルド・テストなどを書く。複数 pkg のルールから同じ定義を参照でき、重複を避けられる。失敗すると停止をブロックする。",
       "items": {
         "$ref": "#/definitions/consistencyCheck"
       }
@@ -84,15 +84,25 @@
         },
         "dir": {
           "type": "string",
-          "description": "run のコマンドを実行する作業ディレクトリ（プロジェクトルートからの相対パス）。省略時はプロジェクトルートで実行される。per_file_dir: true の場合はこの値は無視される。",
+          "description": "run のコマンドを実行する作業ディレクトリ（プロジェクトルートからの相対パス）。省略時はプロジェクトルートで実行される。per_file_dir が設定されている場合はこの値は無視される。",
           "minLength": 1,
           "not": {
             "pattern": "(^/|\\.\\.(/|$))"
           }
         },
         "per_file_dir": {
-          "type": "boolean",
-          "description": "true にすると dir の値を無視し、match にマッチした各ファイルのディレクトリごとに run を実行する（ディレクトリ単位で重複排除、実行順はディレクトリ名の昇順）。match が ** を含み複数ディレクトリにまたがってマッチしうる場合に使う。省略時は false（従来通り dir を使う）。"
+          "description": "dir の値を無視し、match にマッチした各ファイルからルートを決めて、ルートごとに run を実行する（ルート単位で重複排除、実行順はルート名の昇順）。true / \"file\"（true は \"file\" の別名）: マッチしたファイル自身のディレクトリ（os.path.dirname）をルートにする。ディレクトリ＝パッケージという構成（Go の1ディレクトリ1パッケージなど）向け。\"pattern_root\": match の最初の ** セグメントの直前までに対応する実パス部分をルートにする（package.json / pyproject.toml のあるパッケージルートでネストしたファイルもまとめて実行したい、pnpm workspace 等の構成向け）。省略時は false 扱い（従来通り dir を使う）。",
+          "anyOf": [
+            {
+              "const": true
+            },
+            {
+              "enum": [
+                "file",
+                "pattern_root"
+              ]
+            }
+          ]
         },
         "run": {
           "type": "array",
@@ -104,7 +114,7 @@
         },
         "run_checks": {
           "type": "array",
-          "description": "このルールがマッチしたときに追加で実行する consistency_checks の名前一覧。複数ルールから同じ名前を参照しても、1回のチェック実行につき1回だけ実行される（リトライや最終検証パスでは改めて実行される）。",
+          "description": "このルールが rules フェーズでマッチしたとき、checks フェーズ（Stop/SubagentStop）へ予約する consistency_checks の名前一覧。実行タイミングは rules フェーズ自身ではなく、後続の checks フェーズ。複数ルールから同じ名前を参照しても、1回のチェック実行につき1回だけ実行される。run_checks を持たないルールのマッチファイルは rules フェーズ通過時点で追跡対象から外れ、以後の別ファイルの変更で壊れても検出されない。パッケージを跨いで壊れうるルールには必ず指定すること。",
           "minItems": 1,
           "items": {
             "type": "string",
